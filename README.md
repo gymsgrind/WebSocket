@@ -11,15 +11,22 @@
     Configuration:
         *** The Server comunicate with JSON format ***
 
-        ```php 
-        <?php 
-            SetSessionStructure() // Set the structure of the session
-            OnConnection() // Set the function to execute when a user connect the server
-            OnDisconnection() // Set the function to execute when a user disconnect the server
-            NewAction() // Set the function to execute when a user send a [action => value] to the server
-            Run() // Run the server
-        ?>
-        ```
+        Set the structure of the session:
+         ->   SetSessionStructure()
+
+        Set the function to execute when a user connect the server:
+         ->   OnConnection()
+
+        Set the function to execute when a user disconnect the server:
+         ->   OnDisconnection()
+
+        Set the function to execute when a user 
+        send a [action => value] to the server:
+         ->   NewAction()
+
+        Run the server:
+         ->   Run()
+
 ## Usage/Examples
 
 ```php
