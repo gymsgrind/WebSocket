@@ -1,10 +1,15 @@
 const hostname = 'localhost';
 const port = 8090;
 
-let Ws = new websocket(`ws://${hostname}:${port}/`);
+let Ws = new WebSocket(`ws://${hostname}:${port}/`);
 
 Ws.onopen = function () {
     console.log('Connection established');
+    send({
+        action: 'InitUser', 
+        username: 'John Doe', 
+        password: 'Pa33w0rd'
+    });
 };
 
 Ws.onmessage = function (event) {
@@ -27,9 +32,3 @@ Ws.onerror = function (event) {
 function send(array) {
     Ws.send(JSON.stringify(array));
 }
-
-send({
-    action: 'InitUser', 
-    username: 'John Doe', 
-    password: 'Pa33w0rd'
-});
