@@ -52,8 +52,8 @@ $ws->NewAction('InitUser', function ($SocketMsg, $self) {
     $password = 'Pa33w0rd';
 
     if($SocketMsg['username'] == $username && $SocketMsg['password'] == $password) {
-        $UserInfo['username'] = $username;
-        $UserInfo['Auth'] = true;
+        $_SESSION['username'] = $username;
+        $_SESSION['Auth'] = true;
         $self->sendArray(["action" => "Auth", "success" => true]);
     } else {
         $self->sendArray(["action" => "Auth", "success" => false]);
