@@ -11,38 +11,15 @@
     Configuration:
         *** The Server comunicate with JSON format ***
 
-        > $UserInfo = 'array of information for the current user sending data'
-        ^^^^^^^^^ &$UserInfo is needed for direct access to the object.
-        > $socketMessage = 'array containing ['key' => 'value'] from received data'
-        > $self = 'access to function in the class'
-
-        Set User Information Structure for storing user information:
-            - SetUserInfoStructure(['key' => 'Default Value', 'username' => false]);
-        
-        Set trigger function when someone connect:
-            - OnConnection(function ($socket, $self){
-                //Do something
-            });
-        
-        Set trigger function when someone disconnect:
-            - OnDisconnection(function (&$UserInfo) {
-                                        ^^^^^^^^^^
-                //Do something and do not forgot '&' before $UserInfo
-            });
-
-        Set trigger function for an action when the server receive data based on
-        the key ['action']:
-            - NewAction('Value of action key', 
-            function ($socketMessage, &$UserInfo, $self){
-                                      ^^^^^^^^^^
-                //Do something and do not forgot '&' before $UserInfo
-            });
-
-        Sending back JSON data to the current User:
-            - sendArray(['key' => 'value', 'Auth' => true]);
-
-        Run the Socket Server after the Configuration:
-            - Run();
+        ```php 
+        <?php 
+            SetSessionStructure() // Set the structure of the session
+            OnConnection() // Set the function to execute when a user connect the server
+            OnDisconnection() // Set the function to execute when a user disconnect the server
+            NewAction() // Set the function to execute when a user send a [action => value] to the server
+            Run() // Run the server
+        ?>
+        ```
 ## Usage/Examples
 
 ```php
@@ -51,18 +28,18 @@ include_once '/socketServer.class.php';
 
 $ws = new socketServer('localhost', 8090);
 
-$ws->SetUserInfoStructure(['username' => false, 'Auth' => false]);
+$ws->SetSessionStructure(['username' => false, 'Auth' => false]);
 
-$ws->OnConnection(function ($socketInfo, $self) {
+$ws->OnConnection(function ($self) {
 	$self->sendArray(["action" => "InitNow"]);
 });
 
-$ws->OnDisconnection(function (&$UserInfo) {
-    if(!$UserInfo['username']) echo "Anonimous user disconnected\n";
-    else echo "\nUser ".json_encode($UserInfo['username'])." disconnected\n";
+$ws->OnDisconnection(function () {
+    if(!$_SESSION['username']) echo "Anonimous user disconnected\n";
+    else echo "\nUser ".json_encode($_SESSION['username'])." disconnected\n";
 });
 
-$ws->NewAction('InitUser', function ($SocketMsg, &$UserInfo, $self) {
+$ws->NewAction('InitUser', function ($SocketMsg, $self) {
 
     $username = 'John Doe';
     $password = 'Pa33w0rd';
