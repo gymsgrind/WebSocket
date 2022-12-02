@@ -14,7 +14,7 @@ class SocketServer
 	private $port;
 	public $socketResource;
 	private $clientSocketArray;
-	private $clientSocketInfo; /** @var array $clientSocketInfo session */
+	private $clientSocketInfo; /** @var array $clientSocketInfo all sessions */
 	private $newSocketArray;
 	private $ActiveSocketInfo; //Active Socket that contains all users infos
 	private $recMsg; // the received message in object form
@@ -43,7 +43,7 @@ class SocketServer
 		socket_listen($this->socketResource);
 
 		$this->clientSocketArray = array($this->socketResource);
-		$this->clientSocketInfo = array();
+		$this->clientSocketInfo = [];
 
 		$this->newClientAction = ['callback' => false];
 		$this->disconnectionAction = ['callback' => false];
@@ -64,7 +64,8 @@ class SocketServer
 
 				// Set the User Info Structure to the new socket
 				$this->ClientInfoStructure['socket'] = $newSocket;
-				$this->clientSocketInfo[] = $this->ClientInfoStructure;
+				//$this->clientSocketInfo[] = $this->ClientInfoStructure;
+				array_push($this->clientSocketInfo, $this->ClientInfoStructure);
 
 				$header = socket_read($newSocket, 1024);
 				$this->doHandshake($header, $newSocket, $this->address, $this->port);
@@ -102,11 +103,35 @@ class SocketServer
 
 					$newSocketIndex = array_search($newSocketArrayResource, $this->clientSocketArray);
 					unset($this->clientSocketArray[$newSocketIndex]);
-					unset($this->ActiveSocketInfo);
+
+					$this->RemoveActiveSession();
+					//echo json_encode(array_diff_key($this->clientSocketInfo, [$SocketInfoKey]));
 				}
 			}
 		}
 		//socket_close($socketResource);
+	}
+	/**
+	 * Remove the <code>SESSION</code> info
+	 * @param resource $socket
+	 * @return void
+	 */
+	public function RemoveSessionBySocket($socket)
+	{
+		//TODO: Remove the session by socket
+		$session = $this->GetSessionByKey('socket', $socket);
+		$SocketInfoKey = array_search($session, $this->clientSocketInfo);
+		unset($this->clientSocketInfo[$SocketInfoKey]);
+		$this->clientSocketInfo = array_values($this->clientSocketInfo);
+		$newSocketIndex = array_search($socket, $this->clientSocketArray);
+		unset($this->clientSocketArray[$newSocketIndex]);
+	}
+	private function RemoveActiveSession()
+    {
+		$SocketInfoKey = array_search($this->ActiveSocketInfo, $this->clientSocketInfo);
+		unset($this->clientSocketInfo[$SocketInfoKey]);
+		$this->clientSocketInfo = array_values($this->clientSocketInfo);
+
 	}
 	/**
 	 * Make the handshake with the client to establish the connection
@@ -187,11 +212,19 @@ class SocketServer
 	 */
 	public function send($message, $socket = false)
 	{
+		//echo 'message: ' . $message . "\n\n";
 		$messageLength = strlen($message);
 		if(!$socket) $toSocket = $this->ActiveSocketInfo['socket'];
 		else $toSocket = $socket;
-		if(!socket_write($toSocket, $message, $messageLength)) return false;
-		return true;
+		if($toSocket == null) return false;
+		while (true) {
+			try {
+				socket_write($toSocket, $message, $messageLength);
+				return true;
+			} catch (Exception $e) {
+				$this->ReportError($e->getMessage());
+			}
+		}
 	}
 	/**
 	 * Send a json message to a socket
@@ -212,13 +245,18 @@ class SocketServer
 	 */
 	private function SetActiveSocket($ClientSocket)
 	{
-		for ($i = 0; $i < count($this->clientSocketInfo); $i++) {
-			if ($this->clientSocketInfo[$i]['socket'] == $ClientSocket) {
-				$this->ActiveSocketInfo = &$this->clientSocketInfo[$i];
-				if(isset($_SESSION)) $_SESSION = &$this->ActiveSocketInfo;
-				return true;
+		if ($debug = count($this->clientSocketInfo) > 0) {
+			for ($i = 0; $i < count($this->clientSocketInfo); $i++) {
+				//echo "ArraySession: " . json_encode($this->clientSocketInfo) . "\n\n";
+				if (isset($this->clientSocketInfo[$i]) && $this->clientSocketInfo[$i]['socket'] == $ClientSocket) {
+					$this->ActiveSocketInfo = & $this->clientSocketInfo[$i];
+					if (isset($_SESSION))
+						$_SESSION = & $this->ActiveSocketInfo;
+					return true;
+				}
 			}
 		}
+		$this->ReportError();
 		$this->ActiveSocketInfo = false;
 		return false;
 	}
@@ -227,10 +265,10 @@ class SocketServer
 	 * containing the active socket info
 	 * @param string $message The message to display
 	 */
-	private function ReportError($message) 
+	private function ReportError($message = false) 
 	{
 		if (!$this->ActiveSocketInfo) echo "Socket Error: No Active Socket\n";
-		else echo "Error: " . $message . "\nActive Socket: " . var_dump($this->ActiveSocketInfo);
+		elseif ($message) echo "Error: " . $message . "\nActive Socket: " . var_dump($this->ActiveSocketInfo);
 	}
 	/**
 	 * Manage the message received from the client
